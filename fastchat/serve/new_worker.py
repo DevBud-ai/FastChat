@@ -58,9 +58,9 @@ class VLLMWorker:
         self.controller_addr = controller_addr
         self.worker_addr = worker_addr
         self.worker_id = worker_id
-        if model_path.endswith("/"):
-            model_path = model_path[:-1]
-        self.model_name = model_name or model_path.split("/")[-1]
+        # if model_path.endswith("/"):
+        #     model_path = model_path[:-1]
+        self.model_name = model_name
         logger.info(f"Loading the model {self.model_name} on worker {worker_id}, worker type: vLLM worker...")
 
         if not no_register:
@@ -226,8 +226,8 @@ if __name__ == "__main__":
         "--model-path", type=str, default=""
     )
     parser.add_argument(
-        "--model-names",
-        type=lambda s: s.split(","),
+        "--model-name",
+        type=str,
         help="Optional display comma separated names",
     )
     parser.add_argument("--limit-model-concurrency", type=int, default=1024)
@@ -236,17 +236,19 @@ if __name__ == "__main__":
     parser = AsyncEngineArgs.add_cli_args(parser)
     args = parser.parse_args()
     args.download_dir = args.model_path
-    if args.model_names:
-        args.model = args.model_names
-
+    # if args.model_names:
+    #     args.model = args.model_names
+    
+    args.model = args.model_path
     worker = VLLMWorker(
         args.controller_address,
         args.worker_address,
         worker_id,
         args.no_register,
         args.model_path,
-        args.model
+        args.model_name
     )
     engine_args = AsyncEngineArgs.from_cli_args(args)
+    print(engine_args)
     engine = AsyncLLMEngine.from_engine_args(engine_args)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
