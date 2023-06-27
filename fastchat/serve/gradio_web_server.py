@@ -115,7 +115,7 @@ def get_model_list(controller_url, add_chatgpt, add_claude, add_palm):
         models += ["palm-2"]
 
     priority = {k: f"___{i:02d}" for i, k in enumerate(model_info)}
-    models.sort(key=lambda x: priority.get(x, x))
+    models.sort(key=lambda x: priority.get(x, x), reverse=True)
     logger.info(f"Models: {models}")
     return models
 
@@ -368,8 +368,8 @@ def bot_response(state, temperature, top_p, max_new_tokens, request: gr.Request)
         for data in stream_iter:
             if data["error_code"] == 0:
                 output = data["text"].strip()
-                if "vicuna" in model_name:
-                    output = post_process_code(output)
+                # if "vicuna" in model_name:
+                output = post_process_code(output)
                 conv.update_last_message(output + "▌")
                 yield (state, state.to_gradio_chatbot()) + (disable_btn,) * 5
             else:
@@ -437,25 +437,124 @@ def bot_response(state, temperature, top_p, max_new_tokens, request: gr.Request)
 
 
 block_css = """
-#notice_markdown {
-    font-size: 104%
+pre {
+    white-space: pre-wrap;       /* Since CSS 2.1 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+    padding: 0;
 }
-#notice_markdown th {
-    display: none;
+body, .gradio-container-3-23-0{
+background-color: #141718 !important;
 }
-#notice_markdown td {
-    padding-top: 6px;
-    padding-bottom: 6px;
+.app{
+--input-background-fill: #0F0F0F;
+--block-background-fill: #232627;
+--block-border-color: #181818;
+--input-border-color: #181818;
+--button-secondary-background-fill: #ad6eff;
+--background-fill-secondary: #141718;
+--border-color-primary: #141718;
+--color-accent-soft: #34383980;
+--border-color-accent: #34383980;
+--block-padding: 0;
+--body-text-color: #ddd;
+--button-secondary-text-color: #fff;
 }
-#leaderboard_markdown {
-    font-size: 104%
+.gradio-container-3-23-0 ol, .gradio-container-3-23-0 ul{
+padding-left:20px;
 }
-#leaderboard_markdown td {
-    padding-top: 6px;
-    padding-bottom: 6px;
+.contain{
+# display: flex;
 }
-#leaderboard_dataframe td {
-    line-height: 0.1em;
+#component-0{
+gap: 0;
+border-radius: 20px;
+background: var(--block-background-fill);
+    margin: 10px 0;
+}
+#component-0 > #component-3{
+text-align: center;
+    
+    padding: 20px !important;
+    border-bottom: 1px solid #343839 !important;
+    border-radius: 0 !important;
+}
+#component-3{
+display: flex;
+    align-items: center;
+}
+#component-3 p{
+margin: 0 !important;
+}
+#component-3 img{
+margin-right: 15px;
+width: 30px;
+}
+#component-3 h2{
+margin: 0 !important;
+font-size: 1.25em;
+}
+#model_selector_row{
+# display: none;
+}
+#component-19, #component-13{
+display:none;
+}
+#chatbot{
+border-radius: 20px 20px 0 0;
+border: none !important;
+height: 600px;
+padding: 20px 20px 0;
+# flex-grow: 0;
+# overflow-y: scroll !important;
+# height: calc(100% - 100px);
+}
+.svelte-1frtwj3{
+display: none !important;
+}
+#component-7{
+background: var(--block-background-fill);
+border-radius: 0 0 20px 20px;
+padding: 20px;
+border: none;
+}
+#component-7{
+border: 2px solid rgb(52 56 57);
+border-radius: 10px;
+padding: 5px;
+margin: 20px;
+    width: auto;
+}
+textarea.svelte-4xt1ch{
+background: transparent;
+}
+div.svelte-awbtu4{
+background: transparent;
+border: none
+}
+.codehilite{
+    background: #000;
+    padding: 20px;
+    border-radius: 20px;
+    margin: 10px 0;
+}
+.bot.svelte-6roggh.svelte-6roggh{
+padding: var(--spacing-xxl);
+}
+footer{
+    display: none !important;
+}
+.wrap.svelte-6roggh.svelte-6roggh{
+max-height: 580px;
+# height: auto;
+}
+.wrap.svelte-a6vu2r.svelte-a6vu2r.svelte-a6vu2r{
+    border-radius: 0;
+}
+.block.svelte-mppz8v{
+border: 0;
 }
 """
 
@@ -490,20 +589,16 @@ def get_model_description_md(models):
 
 
 def build_single_model_ui(models):
-    notice_markdown = """
-# 🏔️ Chat with Open Large Language Models
-- Vicuna: An Open-Source Chatbot Impressing GPT-4 with 90% ChatGPT Quality. [[Blog]](https://lmsys.org/blog/2023-03-30-vicuna/)
-- | [GitHub](https://github.com/lm-sys/FastChat) | [Twitter](https://twitter.com/lmsysorg) | [Discord](https://discord.gg/HSWAKCrnFx) |
+    notice_markdown = ("""
 
-### Terms of use
-By using this service, users are required to agree to the following terms: The service is a research preview intended for non-commercial use only. It only provides limited safety measures and may generate offensive content. It must not be used for any illegal, harmful, violent, racist, or sexual purposes. **The service collects user dialogue data and reserves the right to distribute it under a Creative Commons Attribution (CC-BY) license.**
+![](https://devbud-dev.s3.ap-south-1.amazonaws.com/assets/loddgo.svg)
+## Bud LLM v0.2
 
-### Choose a model to chat with
-"""
+""")
 
     state = gr.State()
-    model_description_md = get_model_description_md(models)
-    gr.Markdown(notice_markdown + model_description_md, elem_id="notice_markdown")
+    # model_description_md = get_model_description_md(models)
+    gr.Markdown(notice_markdown)
 
     with gr.Row(elem_id="model_selector_row"):
         model_selector = gr.Dropdown(
@@ -524,11 +619,11 @@ By using this service, users are required to agree to the following terms: The s
         with gr.Column(scale=20):
             textbox = gr.Textbox(
                 show_label=False,
-                placeholder="Enter text and press ENTER",
+                placeholder="Ask Bud anything",
                 visible=False,
                 container=False,
             )
-        with gr.Column(scale=1, min_width=50):
+        with gr.Column(scale=1, min_width=100):
             send_btn = gr.Button(value="Send", visible=False)
 
     with gr.Row(visible=False) as button_row:
@@ -564,7 +659,7 @@ By using this service, users are required to agree to the following terms: The s
             label="Max output tokens",
         )
 
-    gr.Markdown(learn_more_md)
+    # gr.Markdown(learn_more_md)
 
     # Register listeners
     btn_list = [upvote_btn, downvote_btn, flag_btn, regenerate_btn, clear_btn]
@@ -612,7 +707,7 @@ By using this service, users are required to agree to the following terms: The s
 
 def build_demo(models):
     with gr.Blocks(
-        title="Chat with Open Large Language Models",
+        title="Bud LLM",
         theme=gr.themes.Base(),
         css=block_css,
     ) as demo:
