@@ -41,7 +41,8 @@ from fastchat.utils import (
     get_window_url_params_js,
     parse_gradio_auth_creds,
 )
-
+from fastchat.serve.gradio_patch import Chatbot as grChatbot
+from fastchat.serve.gradio_css import code_highlight_css
 
 logger = build_logger("gradio_web_server", "gradio_web_server.log")
 
@@ -436,7 +437,7 @@ def bot_response(state, temperature, top_p, max_new_tokens, request: gr.Request)
         fout.write(json.dumps(data) + "\n")
 
 
-block_css = """
+block_css = code_highlight_css + """
 pre {
     white-space: pre-wrap;       /* Since CSS 2.1 */
     white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
@@ -609,12 +610,13 @@ def build_single_model_ui(models):
             container=False,
         )
 
-    chatbot = gr.Chatbot(
-        elem_id="chatbot",
-        label="Scroll down and start chatting",
-        visible=False,
-        height=550,
-    )
+    # chatbot = gr.Chatbot(
+    #     elem_id="chatbot",
+    #     label="Scroll down and start chatting",
+    #     visible=False,
+    #     height=550,
+    # )
+    chatbot = grChatbot(elem_id="chatbot", visible=False)
     with gr.Row():
         with gr.Column(scale=20):
             textbox = gr.Textbox(
