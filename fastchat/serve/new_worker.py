@@ -25,6 +25,9 @@ from fastapi.responses import StreamingResponse
 
 from fastchat.constants import WORKER_HEART_BEAT_INTERVAL
 from fastchat.utils import build_logger, pretty_print_semaphore
+from fastchat.model.model_adapter import (
+    get_conversation_template,
+)
 from vllm import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.sampling_params import SamplingParams
@@ -62,6 +65,9 @@ class VLLMWorker:
         #     model_path = model_path[:-1]
         self.model_name = model_name
         logger.info(f"Loading the model {self.model_name} on worker {worker_id}, worker type: vLLM worker...")
+
+        self.conv = get_conversation_template(model_path)
+        self.context_len = 2048
 
         if not no_register:
             self.register_to_controller()
@@ -133,6 +139,20 @@ class VLLMWorker:
             "queue_length": self.get_queue_length(),
         }
 
+    def count_token(self, params):
+        prompt = params["prompt"]
+        input_ids = self.tokenizer(prompt).input_ids
+        input_echo_len = len(input_ids)
+
+        ret = {
+            "count": input_echo_len,
+            "error_code": 0,
+        }
+        return ret
+    
+    def get_conv_template(self):
+        return {"conv": self.conv}
+
     async def generate_stream(self, params):
         context = params.pop("prompt")
         request_id = params.pop("request_id")
@@ -151,6 +171,8 @@ class VLLMWorker:
         # max_src_len = self.context_len - max_new_tokens - 8
         # input_ids = input_ids[-max_src_len:]
 
+        input_echo_len = len(context) # TODO: change to token length
+
         # make sampling params in vllm
         top_p = max(top_p, 1e-5)
         if temperature <= 1e-5:
@@ -165,6 +187,7 @@ class VLLMWorker:
         )
         results_generator = engine.generate(context, sampling_params, request_id)
 
+        token_count = 1
         async for request_output in results_generator:
             prompt = request_output.prompt
             if echo:
@@ -176,6 +199,13 @@ class VLLMWorker:
                 text_outputs = [output.text for output in request_output.outputs]
             text_outputs = " ".join(text_outputs)
             ret = {"text": text_outputs, "error_code": 0}
+            ret['usage'] = {
+                "prompt_tokens": input_echo_len,
+                "completion_tokens": token_count,
+                "total_tokens": input_echo_len + token_count,
+            }
+            ret['finish_reason'] = 'stop'
+            token_count += 1 
             yield (json.dumps(ret) + "\0").encode("utf-8")
 
 
@@ -212,6 +242,19 @@ async def generate_stream(request: Request):
 @app.post("/worker_get_status")
 async def get_status(request: Request):
     return worker.get_status()
+
+@app.post("/count_token")
+async def count_token(request: Request):
+    params = await request.json()
+    return worker.count_token(params)
+
+@app.post("/worker_get_conv_template")
+async def api_get_conv(request: Request):
+    return worker.get_conv_template()
+
+@app.post("/model_details")
+async def model_details(request: Request):
+    return {"context_length": worker.context_len}
 
 
 if __name__ == "__main__":
