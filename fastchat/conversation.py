@@ -689,6 +689,21 @@ register_conv_template(
 )
 
 
+# Devbud v0.1 default template
+register_conv_template(
+    Conversation(
+        name="devbud",
+        system="Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n",
+        roles=("### Instruction", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.DOLLY,
+        sep="\n\n",
+        sep2="<|endoftext|>",
+    )
+)
+
+
 if __name__ == "__main__":
     conv = get_conv_template("vicuna_v1.1")
     conv.append_message(conv.roles[0], "Hello!")

@@ -116,7 +116,7 @@ def get_model_list(controller_url, add_chatgpt, add_claude, add_palm):
         models += ["palm-2"]
 
     priority = {k: f"___{i:02d}" for i, k in enumerate(model_info)}
-    models.sort(key=lambda x: priority.get(x, x), reverse=True)
+    models.sort(key=lambda x: priority.get(x, x), reverse=False)
     logger.info(f"Models: {models}")
     return models
 

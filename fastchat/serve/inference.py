@@ -70,7 +70,6 @@ def generate_stream(
     logits_processor = prepare_logits_processor(
         temperature, repetition_penalty, top_p, top_k
     )
-
     input_ids = tokenizer(prompt).input_ids
     output_ids = list(input_ids)
 
@@ -187,7 +186,6 @@ def generate_stream(
                                 break
                 else:
                     raise ValueError("Invalid stop field type.")
-
             # prevent yielding partial stop sequence
             if not partially_stopped:
                 yield {

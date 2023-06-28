@@ -23,6 +23,12 @@ def get_model_info(name: str) -> ModelInfo:
 
 
 register_model_info(
+    ["bud-v0.2"], "Bud LLM", "https://bud.studio/", "Bud LLM by Bud Ecosystem"
+)
+register_model_info(
+    ["devbud-v0.1"], "DevBud", "https://bud.studio/", "DevBud by Bud Ecosystem"
+)
+register_model_info(
     ["gpt-4"], "ChatGPT-4", "https://openai.com/research/gpt-4", "ChatGPT-4 by OpenAI"
 )
 register_model_info(

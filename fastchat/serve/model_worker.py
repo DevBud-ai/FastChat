@@ -89,6 +89,7 @@ class ModelWorker:
         logger.info(f"Loading the model {self.model_names} on worker {worker_id} ...")
         self.model, self.tokenizer = load_model(
             model_path,
+            self.model_names[0],
             device,
             num_gpus,
             max_gpu_memory,
@@ -96,7 +97,7 @@ class ModelWorker:
             cpu_offloading,
             gptq_config,
         )
-        self.conv = get_conversation_template(model_path)
+        self.conv = get_conversation_template(self.model_names[0])
         if self.tokenizer.pad_token == None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
@@ -105,6 +106,9 @@ class ModelWorker:
         elif hasattr(self.model.config, "max_position_embeddings"):
             self.context_len = self.model.config.max_position_embeddings
         else:
+            self.context_len = 2048
+        
+        if self.context_len is None:
             self.context_len = 2048
 
         # generate_stream
