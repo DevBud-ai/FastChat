@@ -109,7 +109,13 @@ class ModelWorker:
             self.context_len = 2048
         
         if self.context_len is None:
-            self.context_len = 2048
+            if hasattr(self.model.config, "model_type"):
+                if self.model.config.model_type == 'gpt_bigcode':
+                    self.context_len = 8192
+                else:
+                    self.context_len = 2048
+            else:
+                self.context_len = 2048
 
         # generate_stream
         is_chatglm = "chatglm" in str(type(self.model)).lower()
