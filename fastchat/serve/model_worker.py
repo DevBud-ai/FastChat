@@ -75,7 +75,7 @@ class BaseModelWorker:
         self.model_names = model_names or [model_path.split("/")[-1]]
         self.limit_worker_concurrency = limit_worker_concurrency
 
-        self.conv = get_conversation_template(model_path)
+        self.conv = get_conversation_template(self.model_names[0])
         self.conv.sep_style = int(self.conv.sep_style)
         self.tokenizer = None
         self.context_len = None
@@ -198,6 +198,7 @@ class ModelWorker(BaseModelWorker):
         logger.info(f"Loading the model {self.model_names} on worker {worker_id} ...")
         self.model, self.tokenizer = load_model(
             model_path,
+            self.model_names[0],
             device,
             num_gpus,
             max_gpu_memory,
