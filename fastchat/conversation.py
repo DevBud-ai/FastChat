@@ -23,6 +23,7 @@ class SeparatorStyle(IntEnum):
     RWKV = auto()
     PHOENIX = auto()
     ROBIN = auto()
+    LLAMA = auto()
 
 
 @dataclasses.dataclass
@@ -177,6 +178,18 @@ class Conversation:
                     ret += role + ":\n" + message + self.sep
                 else:
                     ret += role + ":\n"
+            return ret
+        elif self.sep_style == SeparatorStyle.LLAMA:
+            ret = ''
+            for i, (role, message) in enumerate(self.messages):
+                if role == self.roles[0]:
+                    if i == 0:
+                        ret += "[INST]" + self.system + " " + message + " " +  "[/INST]"
+                    else:
+                        ret += "[INST]" + " " + message + " " +  "[/INST]"
+                elif message:
+                    ret += + " " + message + " "
+        
             return ret
         else:
             raise ValueError(f"Invalid style: {self.sep_style}")
@@ -793,6 +806,20 @@ register_conv_template(
         sep_style=SeparatorStyle.DOLLY,
         sep="\n\n",
         sep2="<|endoftext|>",
+    )
+)
+
+# LLaMa 2 default template
+register_conv_template(
+    Conversation(
+        name="llama",
+        system="<<SYS>>\nYou are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n<</SYS>>\n\n",
+        roles=("USER", "ASSISTANT"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.LLAMA,
+        sep=" ",
+        sep2="</s>",
     )
 )
 

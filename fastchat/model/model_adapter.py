@@ -81,7 +81,7 @@ class BaseModelAdapter:
         )
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
-        return get_conv_template("one_shot")
+        return get_conv_template("vicuna_v1.1")
 
 
 # A global registry for all model adapters
@@ -430,6 +430,39 @@ class BudAdapter(BaseModelAdapter):
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("bud")
+
+    def raise_warning_for_old_weights(self, model):
+        if isinstance(model, LlamaForCausalLM) and model.model.vocab_size > 32000:
+            warnings.warn(
+                "\nYou are probably using the old Vicuna-v0 model, "
+                "which will generate unexpected results with the "
+                "current fastchat.\nYou can try one of the following methods:\n"
+                "1. Upgrade your weights to the new Vicuna-v1.3: https://github.com/lm-sys/FastChat#vicuna-weights.\n"
+                "2. Use the old conversation template by `python3 -m fastchat.serve.cli --model-path /path/to/vicuna-v0 --conv-template conv_one_shot`\n"
+                "3. Downgrade fschat to fschat==0.1.10 (Not recommonded).\n"
+            )
+
+class LLaMadapter(BaseModelAdapter):
+    "Model adapater for LLaMa 2"
+
+    def match(self, model_path: str):
+        return "llama" in model_path
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        revision = from_pretrained_kwargs.get("revision", "main")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, use_fast=False, revision=revision
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            low_cpu_mem_usage=True,
+            **from_pretrained_kwargs,
+        )
+        self.raise_warning_for_old_weights(model)
+        return model, tokenizer
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("llama")
 
     def raise_warning_for_old_weights(self, model):
         if isinstance(model, LlamaForCausalLM) and model.model.vocab_size > 32000:
@@ -1219,6 +1252,7 @@ class StarChatAdapter(BaseModelAdapter):
 # The one registered earlier has a higher matching priority.
 register_model_adapter(DevbudAdapter)
 register_model_adapter(BudAdapter)
+register_model_adapter(LLaMadapter)
 register_model_adapter(PeftModelAdapter)
 register_model_adapter(VicunaAdapter)
 register_model_adapter(AiroborosAdapter)

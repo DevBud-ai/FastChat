@@ -118,6 +118,7 @@ def get_model_list(controller_url, add_chatgpt, add_claude, add_palm):
     priority = {k: f"___{i:02d}" for i, k in enumerate(model_info)}
     models.sort(key=lambda x: priority.get(x, x), reverse=False)
     logger.info(f"Models: {models}")
+    models = ['genz-13b']
     return models
 
 
@@ -496,7 +497,7 @@ margin: 0 !important;
 font-size: 1.25em;
 }
 #model_selector_row{
-# display: none;
+ display: none;
 }
 #component-19, #component-13{
 display:none;
@@ -590,8 +591,8 @@ def get_model_description_md(models):
 def build_single_model_ui(models):
     notice_markdown = ("""
 
-![](https://devbud-dev.s3.ap-south-1.amazonaws.com/assets/loddgo.svg)
-## Bud LLM v0.2
+![](https://raw.githubusercontent.com/BudEcosystem/GenZ/main/assets/genz-logo.png)
+## GenZ 13B
 
 """)
 
@@ -619,7 +620,7 @@ def build_single_model_ui(models):
         with gr.Column(scale=20):
             textbox = gr.Textbox(
                 show_label=False,
-                placeholder="Ask Bud anything",
+                placeholder="Ask GenZ anything",
                 visible=False,
                 container=False,
             )
@@ -707,7 +708,7 @@ def build_single_model_ui(models):
 
 def build_demo(models):
     with gr.Blocks(
-        title="Bud LLM",
+        title="GenZ",
         theme=gr.themes.Base(),
         css=block_css,
     ) as demo:
@@ -817,6 +818,7 @@ if __name__ == "__main__":
         server_name=args.host,
         server_port=args.port,
         share=args.share,
+        favicon_path='genz-logo.png',
         max_threads=200,
         auth=auth,
     )
