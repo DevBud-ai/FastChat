@@ -3,7 +3,7 @@ Adopted from https://github.com/gradio-app/gradio/blob/main/gradio/components.py
 Fix a markdown render problem.
 """
 from __future__ import annotations
-
+from enum import Enum
 from gradio.components import *
 from markdown2 import Markdown
 
