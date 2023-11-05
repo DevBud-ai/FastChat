@@ -31,3 +31,5 @@ tests/state_of_the_union.txt
 build
 .env
 log/
+
+faiss_index

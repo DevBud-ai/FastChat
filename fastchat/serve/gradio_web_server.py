@@ -44,6 +44,8 @@ from fastchat.utils import (
 from fastchat.serve.gradio_patch import Chatbot as grChatbot
 from fastchat.serve.gradio_css import code_highlight_css
 
+from fastchat.rag.tool_selection import get_context
+
 logger = build_logger("gradio_web_server", "gradio_web_server.log")
 
 headers = {"User-Agent": "FastChat Client"}
@@ -66,6 +68,8 @@ ip_expiration_dict = defaultdict(lambda: 0)
 class State:
     def __init__(self, model_name):
         self.conv = get_conversation_template(model_name)
+        print(model_name)
+        print(self.conv)
         self.conv_id = uuid.uuid4().hex
         self.skip_next = False
         self.model_name = model_name
@@ -233,6 +237,11 @@ def add_text(state, model_selector, text, request: gr.Request):
         return (state, state.to_gradio_chatbot(), CONVERSATION_LIMIT_MSG) + (
             no_change_btn,
         ) * 5
+
+    rag_context = get_context(text)    
+    if rag_context:
+        text = 'Act as agent who has access to real time data. ' + rag_context + '\n' + text
+        
 
     text = text[:INPUT_CHAR_LEN_LIMIT]  # Hard cut-off
     conv.append_message(conv.roles[0], text)
