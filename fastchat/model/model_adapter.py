@@ -98,12 +98,12 @@ def register_model_adapter(cls):
 def get_model_adapter(model_path: str) -> BaseModelAdapter:
     """Get a model adapter for a model_path."""
     model_path_basename = os.path.basename(os.path.normpath(model_path))
-
+    print(model_path_basename)
     # Try the basename of model_path at first
     for adapter in model_adapters:
         if adapter.match(model_path_basename) and type(adapter) != BaseModelAdapter:
             return adapter
-
+    print(model_path)
     # Then try the full path
     for adapter in model_adapters:
         if adapter.match(model_path):
@@ -375,6 +375,49 @@ def remove_parent_directory_name(model_path):
         model_path = model_path[:-1]
     return model_path.split("/")[-1]
 
+
+class ZephyrAdapter(BaseModelAdapter):
+    """The model adapter for Zephyr (e.g. HuggingFaceH4/zephyr-7b-alpha)"""
+
+    def match(self, model_path: str):
+        return "zephyr" in model_path.lower()
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("zephyr")
+    
+
+class GenzAdapter(BaseModelAdapter):
+    "Model adapater for genz 70B"
+
+    def match(self, model_path: str):
+        return "genz" in model_path
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        revision = from_pretrained_kwargs.get("revision", "main")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, use_fast=False, revision=revision
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            low_cpu_mem_usage=True,
+            **from_pretrained_kwargs,
+        )
+        self.raise_warning_for_old_weights(model)
+        return model, tokenizer
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("genz")
+
+    def raise_warning_for_old_weights(self, model):
+        if isinstance(model, LlamaForCausalLM) and model.model.vocab_size > 32000:
+            warnings.warn(
+                "\nYou are probably using the old Vicuna-v0 model, "
+                "which will generate unexpected results with the "
+                "current fastchat.\nYou can try one of the following methods:\n"
+                "1. Upgrade your weights to the new Vicuna-v1.3: https://github.com/lm-sys/FastChat#vicuna-weights.\n"
+                "2. Use the old conversation template by `python3 -m fastchat.serve.cli --model-path /path/to/vicuna-v0 --conv-template conv_one_shot`\n"
+                "3. Downgrade fschat to fschat==0.1.10 (Not recommonded).\n"
+            )
 
 class DevbudAdapter(BaseModelAdapter):
     "Model adapater for devbudv0.1"
@@ -1250,6 +1293,8 @@ class StarChatAdapter(BaseModelAdapter):
 
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
+register_model_adapter(ZephyrAdapter)
+register_model_adapter(GenzAdapter)
 register_model_adapter(DevbudAdapter)
 register_model_adapter(BudAdapter)
 register_model_adapter(LLaMadapter)

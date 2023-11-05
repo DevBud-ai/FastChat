@@ -805,7 +805,21 @@ register_conv_template(
         offset=0,
         sep_style=SeparatorStyle.DOLLY,
         sep="\n\n",
-        sep2="<|endoftext|>",
+        sep2="</s>",
+    )
+)
+
+register_conv_template(
+    Conversation(
+        name="genz",
+        system="### System: \nA chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's questions.",
+        roles=("### User:", "### Assistant:"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep=" ",
+        sep2="</s>",
     )
 )
 
@@ -883,6 +897,21 @@ register_conv_template(
         sep="",
         sep2="</s>",
         stop_token_ids=[2, 195],
+    )
+)
+
+# Zephyr template
+register_conv_template(
+    Conversation(
+        name="zephyr",
+        system="<|system|>\nA chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the human's questions.\n",
+        roles=("<|user|>", "<|assistant|>"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.CHATML,
+        sep="</s>",
+        stop_token_ids=[2],
+        stop_str="</s>",
     )
 )
 
