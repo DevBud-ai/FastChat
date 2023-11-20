@@ -419,6 +419,42 @@ class GenzAdapter(BaseModelAdapter):
                 "3. Downgrade fschat to fschat==0.1.10 (Not recommonded).\n"
             )
 
+
+class CodeMillenialAdapter(BaseModelAdapter):
+    "Model adapater for code-millenial"
+
+    def match(self, model_path: str):
+        return "code-millenial" in model_path
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        revision = from_pretrained_kwargs.get("revision", "main")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, use_fast=False, revision=revision, trust_remote_code=True
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            trust_remote_code=True,
+            low_cpu_mem_usage=True,
+            **from_pretrained_kwargs,
+        )
+        self.raise_warning_for_old_weights(model)
+        return model, tokenizer
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("code-millenial")
+
+    def raise_warning_for_old_weights(self, model):
+        if isinstance(model, LlamaForCausalLM) and model.model.vocab_size > 32000:
+            warnings.warn(
+                "\nYou are probably using the old Vicuna-v0 model, "
+                "which will generate unexpected results with the "
+                "current fastchat.\nYou can try one of the following methods:\n"
+                "1. Upgrade your weights to the new Vicuna-v1.3: https://github.com/lm-sys/FastChat#vicuna-weights.\n"
+                "2. Use the old conversation template by `python3 -m fastchat.serve.cli --model-path /path/to/vicuna-v0 --conv-template conv_one_shot`\n"
+                "3. Downgrade fschat to fschat==0.1.10 (Not recommonded).\n"
+            )
+
+
 class DevbudAdapter(BaseModelAdapter):
     "Model adapater for devbudv0.1"
 
@@ -1295,6 +1331,7 @@ class StarChatAdapter(BaseModelAdapter):
 # The one registered earlier has a higher matching priority.
 register_model_adapter(ZephyrAdapter)
 register_model_adapter(GenzAdapter)
+register_model_adapter(CodeMillenialAdapter)
 register_model_adapter(DevbudAdapter)
 register_model_adapter(BudAdapter)
 register_model_adapter(LLaMadapter)

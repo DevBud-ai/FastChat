@@ -51,9 +51,12 @@ class Conversation:
 
     def get_prompt(self) -> str:
         """Get the prompt for generation."""
+        
+        messages = self.messages[-2:]
+        
         if self.sep_style == SeparatorStyle.ADD_COLON_SINGLE:
             ret = self.system + self.sep
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + ": " + message + self.sep
                 else:
@@ -62,7 +65,7 @@ class Conversation:
         elif self.sep_style == SeparatorStyle.ADD_COLON_TWO:
             seps = [self.sep, self.sep2]
             ret = self.system + seps[0]
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if message:
                     ret += role + ": " + message + seps[i % 2]
                 else:
@@ -70,7 +73,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.ADD_COLON_SPACE_SINGLE:
             ret = self.system + self.sep
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + ": " + message + self.sep
                 else:
@@ -78,7 +81,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.ADD_NEW_LINE_SINGLE:
             ret = "" if self.system == "" else self.system + self.sep
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + "\n" + message + self.sep
                 else:
@@ -86,7 +89,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.NO_COLON_SINGLE:
             ret = self.system
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + message + self.sep
                 else:
@@ -95,7 +98,7 @@ class Conversation:
         elif self.sep_style == SeparatorStyle.NO_COLON_TWO:
             seps = [self.sep, self.sep2]
             ret = self.system
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if message:
                     ret += role + message + seps[i % 2]
                 else:
@@ -103,7 +106,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.RWKV:
             ret = self.system
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if message:
                     ret += (
                         role
@@ -123,7 +126,7 @@ class Conversation:
             else:
                 ret = ""
 
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if i % 2 == 0:
                     ret += f"[Round {i//2 + round_add_n}]{self.sep}"
 
@@ -134,7 +137,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.CHATML:
             ret = "" if self.system == "" else self.system + self.sep + "\n"
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + "\n" + message + self.sep + "\n"
                 else:
@@ -144,7 +147,7 @@ class Conversation:
             # source: https://huggingface.co/internlm/internlm-chat-7b-8k/blob/bd546fa984b4b0b86958f56bf37f94aa75ab8831/modeling_internlm.py#L771
             seps = [self.sep, self.sep2]
             ret = self.system
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if i % 2 == 0:
                     ret += "<s>"
                 if message:
@@ -155,7 +158,7 @@ class Conversation:
         elif self.sep_style == SeparatorStyle.DOLLY:
             seps = [self.sep, self.sep2]
             ret = self.system
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if message:
                     ret += role + ":\n" + message + seps[i % 2]
                     if i % 2 == 1:
@@ -165,7 +168,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.PHOENIX:
             ret = self.system
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + ": " + "<s>" + message + "</s>"
                 else:
@@ -173,7 +176,7 @@ class Conversation:
             return ret
         elif self.sep_style == SeparatorStyle.ROBIN:
             ret = self.system + self.sep
-            for role, message in self.messages:
+            for role, message in messages:
                 if message:
                     ret += role + ":\n" + message + self.sep
                 else:
@@ -182,7 +185,7 @@ class Conversation:
         elif self.sep_style == SeparatorStyle.LLAMA:
             seps = [self.sep, self.sep2]
             ret = self.system
-            for i, (role, message) in enumerate(self.messages):
+            for i, (role, message) in enumerate(messages):
                 if message:
                     if i == 0:
                         ret += message + " "
@@ -794,6 +797,19 @@ register_conv_template(
     )
 )
 
+# Devbud v0.1 default template
+register_conv_template(
+    Conversation(
+        name="code-millenial",
+        system="Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n",
+        roles=("### Instruction", "### Response"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.DOLLY,
+        sep="\n\n",
+        sep2="</s>",
+    )
+)
 
 # Devbud v0.1 default template
 register_conv_template(
