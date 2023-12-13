@@ -822,6 +822,56 @@ register_conv_template(
         sep2="</s>",
     )
 )
+register_conv_template(
+    Conversation(
+        name="layout",
+        system="",
+        roles=("", ""),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.ADD_COLON_TWO,
+        sep=" ",
+        sep2="</s>",
+    )
+)
+# Qwen-chat default template
+# source: https://huggingface.co/Qwen/Qwen-7B-Chat/blob/main/qwen_generation_utils.py#L130
+register_conv_template(
+    Conversation(
+        name="qwen-72b-chat",
+        system="You are a helpful assistant.",
+        roles=("<|im_start|>user", "<|im_start|>assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.CHATML,
+        sep="<|im_end|>",
+        stop_token_ids=[
+            151643,
+            151644,
+            151645,
+        ],  # "<|endoftext|>", "<|im_start|>", "<|im_end|>"
+        stop_str="<|endoftext|>",
+    )
+)
+
+register_conv_template(
+    Conversation(
+        name="Yi-34b-chat",
+        system="<|im_start|>system\nA chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.<|im_end|>",
+        roles=("<|im_start|>user", "<|im_start|>assistant"),
+        messages=(),
+        offset=0,
+        sep_style=SeparatorStyle.CHATML,
+        sep="<|im_end|>",
+        stop_token_ids=[
+            2,
+            6,
+            7,
+            8,
+        ],  # "<|endoftext|>", "<|im_start|>", "<|im_end|>", "<|im_sep|>"
+        stop_str="<|endoftext|>",
+    )
+)
 
 # LLaMa 2 default template
 register_conv_template(

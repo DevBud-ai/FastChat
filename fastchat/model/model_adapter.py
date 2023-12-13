@@ -376,6 +376,39 @@ def remove_parent_directory_name(model_path):
     return model_path.split("/")[-1]
 
 
+class LayoutAdapter(BaseModelAdapter):
+    "Model adapater for devbudv0.1"
+
+    def match(self, model_path: str):
+        return "layout" in model_path
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        revision = from_pretrained_kwargs.get("revision", "main")
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, use_fast=False, revision=revision
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            low_cpu_mem_usage=True,
+            **from_pretrained_kwargs,
+        )
+        self.raise_warning_for_old_weights(model)
+        return model, tokenizer
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("layout")
+
+    def raise_warning_for_old_weights(self, model):
+        if isinstance(model, LlamaForCausalLM) and model.model.vocab_size > 32000:
+            warnings.warn(
+                "\nYou are probably using the old Vicuna-v0 model, "
+                "which will generate unexpected results with the "
+                "current fastchat.\nYou can try one of the following methods:\n"
+                "1. Upgrade your weights to the new Vicuna-v1.3: https://github.com/lm-sys/FastChat#vicuna-weights.\n"
+                "2. Use the old conversation template by `python3 -m fastchat.serve.cli --model-path /path/to/vicuna-v0 --conv-template conv_one_shot`\n"
+                "3. Downgrade fschat to fschat==0.1.10 (Not recommonded).\n"
+            )
+
 class ZephyrAdapter(BaseModelAdapter):
     """The model adapter for Zephyr (e.g. HuggingFaceH4/zephyr-7b-alpha)"""
 
@@ -384,7 +417,79 @@ class ZephyrAdapter(BaseModelAdapter):
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("zephyr")
-    
+
+class QwenChatAdapter(BaseModelAdapter):
+    """The model adapter for Qwen/Qwen-7B-Chat
+    To run this model, you need to ensure additional flash attention installation:
+    ``` bash
+    git clone https://github.com/Dao-AILab/flash-attention
+    cd flash-attention && pip install .
+    pip install csrc/layer_norm
+    pip install csrc/rotary
+    ```
+
+    Since from 2.0, the following change happened
+    - `flash_attn_unpadded_func` -> `flash_attn_varlen_func`
+    - `flash_attn_unpadded_qkvpacked_func` -> `flash_attn_varlen_qkvpacked_func`
+    - `flash_attn_unpadded_kvpacked_func` -> `flash_attn_varlen_kvpacked_func`
+    You may need to revise the code in: https://huggingface.co/Qwen/Qwen-7B-Chat/blob/main/modeling_qwen.py#L69
+    to from flash_attn.flash_attn_interface import flash_attn_varlen_func as flash_attn_unpadded_func
+    """
+
+    def match(self, model_path: str):
+        return "qwen" in model_path.lower()
+
+    def float_set(self, config, option):
+        config.bf16 = False
+        config.fp16 = False
+        config.fp32 = False
+
+        if option == "bf16":
+            config.bf16 = True
+        elif option == "fp16":
+            config.fp16 = True
+        elif option == "fp32":
+            config.fp32 = True
+        else:
+            print("Invalid option. Please choose one from 'bf16', 'fp16' and 'fp32'.")
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        from transformers.generation import GenerationConfig
+
+        revision = from_pretrained_kwargs.get("revision", "main")
+        config = AutoConfig.from_pretrained(
+            model_path,
+            trust_remote_code=True,
+        )
+        # NOTE: if you use the old version of model file, please remove the comments below
+        # config.use_flash_attn = False
+        self.float_set(config, "fp16")
+        generation_config = GenerationConfig.from_pretrained(
+            model_path, trust_remote_code=True
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            config=config,
+            low_cpu_mem_usage=True,
+            trust_remote_code=True,
+            **from_pretrained_kwargs,
+        ).eval()
+        if hasattr(model.config, "use_dynamic_ntk") and model.config.use_dynamic_ntk:
+            model.config.max_sequence_length = 16384
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path, trust_remote_code=True, revision=revision
+        )
+        tokenizer.eos_token_id = config.eos_token_id
+        tokenizer.bos_token_id = config.bos_token_id
+        tokenizer.pad_token_id = generation_config.pad_token_id
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.bos_token_id = tokenizer.bos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+
+        return model, tokenizer
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("qwen-72b-chat") 
 
 class GenzAdapter(BaseModelAdapter):
     "Model adapater for genz 70B"
@@ -1290,9 +1395,18 @@ class StarChatAdapter(BaseModelAdapter):
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("starchat")
 
+class YiAdapter(BaseModelAdapter):
+    """The model adapter for Yi models"""
+
+    def match(self, model_path: str):
+        return "yi-" in model_path.lower() and "chat" in model_path.lower()
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("Yi-34b-chat")
 
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
+register_model_adapter(LayoutAdapter)
 register_model_adapter(ZephyrAdapter)
 register_model_adapter(GenzAdapter)
 register_model_adapter(DevbudAdapter)
@@ -1339,6 +1453,8 @@ register_model_adapter(NousHermesAdapter)
 register_model_adapter(PythiaAdapter)
 register_model_adapter(InternLMChatAdapter)
 register_model_adapter(StarChatAdapter)
+register_model_adapter(YiAdapter)
+register_model_adapter(QwenChatAdapter)
 
 # After all adapters, try the default base adapter.
 register_model_adapter(BaseModelAdapter)
