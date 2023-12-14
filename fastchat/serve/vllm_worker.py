@@ -94,6 +94,7 @@ class VLLMWorker(BaseModelWorker):
             top_p=top_p,
             use_beam_search=False,
             stop=list(stop),
+            stop_token_ids=stop_token_ids,
             max_tokens=max_new_tokens,
         )
         results_generator = engine.generate(context, sampling_params, request_id)
