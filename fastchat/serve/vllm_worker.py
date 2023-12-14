@@ -7,6 +7,7 @@ See documentations at docs/vllm_integration.md
 import argparse
 import asyncio
 import json
+import math
 from typing import List
 
 from fastapi import FastAPI, Request, BackgroundTasks
@@ -108,13 +109,27 @@ class VLLMWorker(BaseModelWorker):
             else:
                 text_outputs = [output.text for output in request_output.outputs]
             text_outputs = " ".join(text_outputs)
+            
+            completion_tokens = len(request_output.outputs[-1].token_ids)
+            cumulative_logprob = request_output.outputs[-1].cumulative_logprob
+            preplexity = math.exp(-cumulative_logprob/completion_tokens)
             # Note: usage is not supported yet
-            ret = {"text": text_outputs, "error_code": 0, "usage": {}}
+            ret = {
+                "text": text_outputs,
+                "error_code": 0, 
+                "usage": {
+                    "prompt_tokens": 0,
+                    "total_tokens": 0,
+                    "completion_tokens": completion_tokens,
+                    "preplexity": preplexity
+                }
+            }
             yield (json.dumps(ret) + "\0").encode()
 
     async def generate(self, params):
         async for x in self.generate_stream(params):
             pass
+        print(json.loads(x[:-1].decode()))
         return json.loads(x[:-1].decode())
 
 
