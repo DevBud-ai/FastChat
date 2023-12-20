@@ -418,6 +418,21 @@ class ZephyrAdapter(BaseModelAdapter):
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("zephyr")
 
+class MistralAdapter(BaseModelAdapter):
+    """The model adapter for Mistral AI models"""
+
+    def match(self, model_path: str):
+        return "mistral" in model_path.lower()
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        model, tokenizer = super().load_model(model_path, from_pretrained_kwargs)
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+        return model, tokenizer
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("mistral")
+
 class QwenChatAdapter(BaseModelAdapter):
     """The model adapter for Qwen/Qwen-7B-Chat
     To run this model, you need to ensure additional flash attention installation:
@@ -1455,6 +1470,6 @@ register_model_adapter(InternLMChatAdapter)
 register_model_adapter(StarChatAdapter)
 register_model_adapter(YiAdapter)
 register_model_adapter(QwenChatAdapter)
-
+register_model_adapter(MistralAdapter)
 # After all adapters, try the default base adapter.
 register_model_adapter(BaseModelAdapter)

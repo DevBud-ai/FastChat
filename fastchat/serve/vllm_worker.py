@@ -112,7 +112,7 @@ class VLLMWorker(BaseModelWorker):
             
             completion_tokens = len(request_output.outputs[-1].token_ids)
             cumulative_logprob = request_output.outputs[-1].cumulative_logprob
-            preplexity = math.exp(-cumulative_logprob/completion_tokens)
+            perplexity = math.exp(-cumulative_logprob/completion_tokens) if completion_tokens else 0
             # Note: usage is not supported yet
             ret = {
                 "text": text_outputs,
@@ -121,7 +121,7 @@ class VLLMWorker(BaseModelWorker):
                     "prompt_tokens": 0,
                     "total_tokens": 0,
                     "completion_tokens": completion_tokens,
-                    "preplexity": preplexity
+                    "perplexity": perplexity
                 }
             }
             yield (json.dumps(ret) + "\0").encode()

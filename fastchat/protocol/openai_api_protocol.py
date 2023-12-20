@@ -46,7 +46,7 @@ class UsageInfo(BaseModel):
     prompt_tokens: int = 0
     total_tokens: int = 0
     completion_tokens: Optional[int] = 0
-    preplexity: Optional[float] = 0
+    perplexity: Optional[float] = 0
 
 
 class ChatCompletionRequest(BaseModel):
